@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <title>Turnstile Host</title>
+  </head>
+  <body>
+    <div id="turnstile-widget"></div>
+    <script>
+      function cbToken(token) {
+        // redirect back to the app via deep link (configure your app to handle this URI scheme)
+        window.location.href = 'myapp://turnstile?token=' + encodeURIComponent(token);
+      }
+
+      // Replace SITE_KEY with your site key for this hosted origin
+      window.turnstile.render('#turnstile-widget', {
+        sitekey: '0x4AAAAAAAfGaE18tbkrUnve',
+        callback: cbToken,
+        theme: 'light'
+      });
+    </script>
+  </body>
+</html>

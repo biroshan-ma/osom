@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Turnstile Widget</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <style>
+      html, body { height:100%; margin:0; display:flex; align-items:center; justify-content:center; background:transparent; }
+      #container { width:100%; max-width:420px; }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <div id="turnstile-widget"></div>
+      <script>
+        function sendMessage(message) {
+          try {
+            if (window.TurnstileFlutterChannel && window.TurnstileFlutterChannel.postMessage) {
+              window.TurnstileFlutterChannel.postMessage(message);
+              return;
+            }
+            if (window.parent) {
+              window.parent.postMessage(message, '*');
+            }
+          } catch (e) {
+            // swallow
+          }
+        }
+
+        // Forward console messages to Flutter for debugging
+        (function(){
+          try {
+            const origLog = console.log.bind(console);
+            const origWarn = console.warn.bind(console);
+            const origError = console.error.bind(console);
+            console.log = function(){ sendMessage('CONSOLE: ' + Array.from(arguments).join(' ')); origLog.apply(null, arguments); };
+            console.warn = function(){ sendMessage('CONSOLE_WARN: ' + Array.from(arguments).join(' ')); origWarn.apply(null, arguments); };
+            console.error = function(){ sendMessage('CONSOLE_ERROR: ' + Array.from(arguments).join(' ')); origError.apply(null, arguments); };
+          } catch (e) {
+            // ignore
+          }
+        })();
+
+        function cbToken(token) {
+          // Token message
+          sendMessage(token);
+        }
+
+        function renderWidget() {
+          try {
+            if (window.turnstile && window.turnstile.render) {
+              window.turnstile.render('#turnstile-widget', {
+                sitekey: '0x4AAAAAAAfGaE18tbkrUnve',
+                callback: cbToken,
+                theme: 'light'
+              });
+            } else {
+              // If turnstile didn't attach properly, report an error
+              sendMessage('ERROR: Turnstile API not available');
+            }
+          } catch (err) {
+            // Report any runtime error back to Flutter so the app can fallback
+            sendMessage('ERROR: ' + (err && err.message ? err.message : String(err)));
+          }
+        }
+
+        // Global error handler to capture script/runtime errors (like Turnstile errors)
+        window.addEventListener('error', function(evt) {
+          var msg = (evt && evt.message) ? evt.message : String(evt);
+          sendMessage('ERROR: ' + msg);
+        });
+
+        // Also capture unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(evt) {
+          var reason = (evt && evt.reason && evt.reason.message) ? evt.reason.message : JSON.stringify(evt.reason);
+          sendMessage('ERROR: ' + reason);
+        });
+
+        if (window.turnstile) {
+          renderWidget();
+        } else {
+          window.addEventListener('load', function() {
+            renderWidget();
+          });
+        }
+      </script>
+    </div>
+  </body>
+</html>
